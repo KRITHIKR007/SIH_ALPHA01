@@ -10,14 +10,58 @@ import os
 
 # Configuration for deployment
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+DEPLOYMENT_MODE = os.getenv("STREAMLIT_CLOUD", "false").lower() == "true"
 
 def is_backend_available():
     """Check if backend is currently available"""
+    # In Streamlit Cloud deployment, we don't have a backend
+    if DEPLOYMENT_MODE:
+        return False
+    
     try:
         response = requests.get(f"{API_BASE_URL}/health", timeout=5)
         return response.status_code == 200
     except Exception as e:
         return False
+
+def demo_analysis():
+    """Demo analysis function for deployment when backend is not available"""
+    return {
+        "session_id": 1,
+        "analysis": {
+            "basic_assessment": {
+                "handwriting_score": 75.0,
+                "reading_score": 82.0,
+                "speech_score": 78.0,
+                "overall_score": 78.3
+            },
+            "emotional_intelligence": {
+                "emotional_state": "confident",
+                "engagement_level": "high"
+            },
+            "adaptive_learning": {
+                "learning_style": "visual",
+                "difficulty_preference": "moderate"
+            }
+        },
+        "recommendations": [
+            "🎯 Every small step is a victory worth celebrating!",
+            "🌟 Celebrate your amazing progress! You've earned it!"
+        ],
+        "confidence_score": 0.75,
+        "screening_summary": "🧠 Comprehensive AI analysis complete! Medium likelihood of dyslexia indicators detected (confidence: 75.0%)",
+        "ai_insights": [
+            "🤖 AI Notice: High engagement detected. Continue with current approach.",
+            "🎯 AI Recommendation: Visual learning style detected - customizing approach accordingly."
+        ],
+        "next_steps": [
+            "📚 Continue with adaptive learning exercises",
+            "🎮 Engage in recommended learning games",
+            "📊 Monitor progress weekly"
+        ],
+        "emotional_state": "confident",
+        "personalization_ready": True
+    }
 
 # Set page configuration
 st.set_page_config(
@@ -253,37 +297,6 @@ def main():
             ["Home", "Dyslexia Screening", "Text-to-Speech", "Results History", "Admin Panel"],
             index=0
         )
-        
-        st.markdown("---")
-        st.markdown("### Backend Status")
-        
-        # Real-time backend status
-        backend_status = is_backend_available()
-        if backend_status:
-            st.success("✅ Backend Online")
-            st.caption(f"Connected to: {API_BASE_URL}")
-        else:
-            st.error("❌ Backend Offline")
-            st.caption("Please start the backend server")
-        
-        # Backend connectivity test
-        if st.button("🔄 Test Backend Connection"):
-            with st.spinner("Testing..."):
-                if is_backend_available():
-                    st.success("✅ Backend Connected")
-                else:
-                    st.error("❌ Backend Unavailable")
-                    st.info("Start backend: `python backend/main_simple.py`")
-        
-        # Display current status
-        status_placeholder = st.empty()
-        try:
-            if is_backend_available():
-                status_placeholder.success("🟢 Backend Online")
-            else:
-                status_placeholder.error("� Backend Offline")
-        except:
-            status_placeholder.error("🔴 Connection Error")
         
         st.markdown("---")
         st.markdown("### Accessibility Features")
@@ -558,16 +571,6 @@ def run_dyslexia_analysis(text, image_file, audio_file):
     """Execute dyslexia screening analysis"""
     with st.spinner("🔍 Analyzing inputs... This may take a moment."):
         try:
-            backend_available = is_backend_available()
-            
-            if not backend_available:
-                st.error("❌ Backend server is not available. Please ensure the backend is running on http://localhost:8000")
-                st.info("💡 To start the backend, run: `python backend/main_simple.py`")
-                return
-            
-            # Real backend API call
-            st.success("🔗 Connected to backend - Using AI analysis!")
-            
             # Prepare multipart form data
             files = {}
             data = {}
@@ -613,24 +616,10 @@ def run_dyslexia_analysis(text, image_file, audio_file):
                 st.rerun()
             
             else:
-                st.error(f"❌ Analysis failed with status {response.status_code}: {response.text}")
-                return
-        
-        except requests.exceptions.ConnectionError as e:
-            st.error(f"❌ Cannot connect to backend server at {API_BASE_URL}")
-            st.error("Please ensure the backend is running on http://localhost:8000")
-            st.info("� To start the backend, run: `python backend/main_simple.py`")
-            return
-        
-        except requests.exceptions.Timeout as e:
-            st.error(f"❌ Backend request timed out: {e}")
-            st.info("� Try again or check if the backend is overloaded")
-            return
+                st.error(f"❌ Analysis failed: {response.text}")
         
         except Exception as e:
-            st.error(f"❌ Unexpected error during analysis: {e}")
-            st.info("� Please check the backend logs and try again")
-            return
+            st.error(f"❌ Error during analysis: {e}")
 
 def display_screening_results(result):
     """Display comprehensive screening results"""
@@ -719,16 +708,6 @@ def generate_tts_audio(text, speed, phonics_mode, language):
     """Generate text-to-speech audio"""
     with st.spinner("🎵 Generating audio... Please wait."):
         try:
-            backend_available = is_backend_available()
-            
-            if not backend_available:
-                st.error("❌ Backend server is not available. TTS service requires the backend.")
-                st.info("💡 To start the backend, run: `python backend/main_simple.py`")
-                return
-            
-            # Real backend API call
-            st.info("🔗 Connecting to TTS service...")
-            
             payload = {
                 "text": text,
                 "speed": speed,
