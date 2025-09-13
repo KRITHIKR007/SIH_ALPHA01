@@ -16,7 +16,7 @@ def is_backend_available():
     try:
         response = requests.get(f"{API_BASE_URL}/health", timeout=5)
         return response.status_code == 200
-    except:
+    except Exception as e:
         return False
 
 def demo_analysis():
@@ -289,6 +289,15 @@ def main():
         
         st.markdown("---")
         st.markdown("### Backend Status")
+        
+        # Real-time backend status
+        backend_status = is_backend_available()
+        if backend_status:
+            st.success("✅ Backend Online")
+            st.caption(f"Connected to: {API_BASE_URL}")
+        else:
+            st.error("❌ Backend Offline")
+            st.caption("Running in Demo Mode")
         
         # Backend connectivity test
         if st.button("🔄 Test Backend Connection"):
@@ -586,7 +595,7 @@ def run_dyslexia_analysis(text, image_file, audio_file):
             
             if not backend_available:
                 # Use demo mode
-                st.info("🎭 Backend not available - Using demo mode")
+                st.warning("🎭 Backend not available - Using demo mode")
                 time.sleep(2)  # Simulate processing time
                 result = demo_analysis()
                 st.session_state.screening_result = result
@@ -609,7 +618,7 @@ def run_dyslexia_analysis(text, image_file, audio_file):
                 return
             
             # Real backend API call
-            st.info("🔗 Connecting to backend...")
+            st.success("🔗 Connected to backend - Using AI analysis!")
             
             # Prepare multipart form data
             files = {}
