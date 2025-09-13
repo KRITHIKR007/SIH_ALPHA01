@@ -1,0 +1,60 @@
+# DyslexiaCare Platform - Complete Dependencies
+# Production-ready requirements for the reorganized codebase
+
+# FastAPI Backend Dependencies
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Database
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Configuration Management
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# AI/ML Libraries (Python 3.12 compatible versions)
+easyocr>=1.7.0
+openai-whisper>=20231117
+python-Levenshtein>=0.20.0
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Audio Processing
+pydub>=0.25.1
+soundfile>=0.12.1
+
+# Image Processing
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Streamlit Frontend Dependencies
+streamlit>=1.28.0
+requests>=2.31.0
+
+# TTS Dependencies (Optional for production TTS)
+# TTS>=0.22.0  # Coqui TTS - Uncomment for production
+# espeak-ng  # System dependency for TTS
+
+# Async Support
+aiofiles>=23.0.0
+
+# Development and Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Security
+cryptography>=41.0.0
+
+# Logging and Monitoring
+structlog>=23.0.0
+
+# Utilities
+click>=8.1.0
+tqdm>=4.66.0
