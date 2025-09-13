@@ -19,39 +19,6 @@ def is_backend_available():
     except Exception as e:
         return False
 
-def demo_analysis():
-    """Demo analysis function for when backend is not available"""
-    return {
-        "handwriting_score": 75.0,
-        "reading_score": 82.0,
-        "speech_score": 78.0,
-        "overall_score": 78.3,
-        "risk_level": "MODERATE",
-        "confidence": 0.85,
-        "detailed_analysis": {
-            "handwriting": {
-                "letter_formation": "Some inconsistencies in letter shapes",
-                "spacing": "Generally good spacing between words",
-                "line_adherence": "Occasional drift from baseline"
-            },
-            "reading": {
-                "accuracy": "Good word recognition",
-                "fluency": "Moderate reading speed",
-                "comprehension": "Good understanding of text"
-            },
-            "speech": {
-                "pronunciation": "Clear pronunciation",
-                "fluency": "Good speech rhythm",
-                "vocabulary": "Age-appropriate vocabulary"
-            }
-        },
-        "recommendations": [
-            "Practice handwriting exercises focusing on letter formation",
-            "Regular reading sessions to improve fluency",
-            "Continue speech exercises for rhythm improvement"
-        ]
-    }
-
 # Set page configuration
 st.set_page_config(
     page_title="DyslexiaCare - AI Screening Platform",
@@ -297,7 +264,7 @@ def main():
             st.caption(f"Connected to: {API_BASE_URL}")
         else:
             st.error("❌ Backend Offline")
-            st.caption("Running in Demo Mode")
+            st.caption("Please start the backend server")
         
         # Backend connectivity test
         if st.button("🔄 Test Backend Connection"):
@@ -306,7 +273,7 @@ def main():
                     st.success("✅ Backend Connected")
                 else:
                     st.error("❌ Backend Unavailable")
-                    st.info("Using Demo Mode")
+                    st.info("Start backend: `python backend/main_simple.py`")
         
         # Display current status
         status_placeholder = st.empty()
@@ -314,7 +281,7 @@ def main():
             if is_backend_available():
                 status_placeholder.success("🟢 Backend Online")
             else:
-                status_placeholder.warning("🟡 Demo Mode Active")
+                status_placeholder.error("� Backend Offline")
         except:
             status_placeholder.error("🔴 Connection Error")
         
@@ -594,27 +561,8 @@ def run_dyslexia_analysis(text, image_file, audio_file):
             backend_available = is_backend_available()
             
             if not backend_available:
-                # Use demo mode
-                st.warning("🎭 Backend not available - Using demo mode")
-                time.sleep(2)  # Simulate processing time
-                result = demo_analysis()
-                st.session_state.screening_result = result
-                
-                # Add to chat history
-                user_msg = f"Submitted for analysis (Demo Mode): "
-                if text:
-                    user_msg += "text sample, "
-                if image_file:
-                    user_msg += "handwriting image, "
-                if audio_file:
-                    user_msg += "audio recording, "
-                user_msg = user_msg.rstrip(", ")
-                
-                st.session_state.chat_history.append({"role": "user", "content": user_msg})
-                st.session_state.chat_history.append({"role": "assistant", "content": "Demo analysis completed successfully."})
-                
-                st.success("✅ Analysis completed successfully! (Demo Mode)")
-                st.rerun()
+                st.error("❌ Backend server is not available. Please ensure the backend is running on http://localhost:8000")
+                st.info("💡 To start the backend, run: `python backend/main_simple.py`")
                 return
             
             # Real backend API call
@@ -666,40 +614,23 @@ def run_dyslexia_analysis(text, image_file, audio_file):
             
             else:
                 st.error(f"❌ Analysis failed with status {response.status_code}: {response.text}")
-                st.info("🔄 Falling back to demo mode...")
-                # Fallback to demo mode
-                result = demo_analysis()
-                st.session_state.screening_result = result
-                st.success("✅ Analysis completed successfully! (Demo Mode - Backend Error)")
-                st.rerun()
+                return
         
         except requests.exceptions.ConnectionError as e:
             st.error(f"❌ Cannot connect to backend server at {API_BASE_URL}")
             st.error("Please ensure the backend is running on http://localhost:8000")
-            st.info("🔄 Falling back to demo mode...")
-            # Fallback to demo mode
-            result = demo_analysis()
-            st.session_state.screening_result = result
-            st.success("✅ Analysis completed successfully! (Demo Mode - Connection Error)")
-            st.rerun()
+            st.info("� To start the backend, run: `python backend/main_simple.py`")
+            return
         
         except requests.exceptions.Timeout as e:
             st.error(f"❌ Backend request timed out: {e}")
-            st.info("🔄 Falling back to demo mode...")
-            # Fallback to demo mode
-            result = demo_analysis()
-            st.session_state.screening_result = result
-            st.success("✅ Analysis completed successfully! (Demo Mode - Timeout)")
-            st.rerun()
+            st.info("� Try again or check if the backend is overloaded")
+            return
         
         except Exception as e:
             st.error(f"❌ Unexpected error during analysis: {e}")
-            st.info("🔄 Falling back to demo mode...")
-            # Fallback to demo mode
-            result = demo_analysis()
-            st.session_state.screening_result = result
-            st.success("✅ Analysis completed successfully! (Demo Mode - Unexpected Error)")
-            st.rerun()
+            st.info("� Please check the backend logs and try again")
+            return
 
 def display_screening_results(result):
     """Display comprehensive screening results"""
@@ -791,13 +722,8 @@ def generate_tts_audio(text, speed, phonics_mode, language):
             backend_available = is_backend_available()
             
             if not backend_available:
-                # Demo mode
-                st.info("🎭 Backend not available - Demo TTS mode")
-                time.sleep(2)  # Simulate processing
-                st.success("✅ Audio generated successfully! (Demo Mode)")
-                st.markdown("#### 🎧 Generated Audio")
-                st.info("Demo: Audio file would be available for download in production")
-                st.write(f"Duration: {len(text) * 0.1:.1f} seconds (estimated)")
+                st.error("❌ Backend server is not available. TTS service requires the backend.")
+                st.info("💡 To start the backend, run: `python backend/main_simple.py`")
                 return
             
             # Real backend API call
