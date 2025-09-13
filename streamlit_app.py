@@ -288,6 +288,28 @@ def main():
         )
         
         st.markdown("---")
+        st.markdown("### Backend Status")
+        
+        # Backend connectivity test
+        if st.button("🔄 Test Backend Connection"):
+            with st.spinner("Testing..."):
+                if is_backend_available():
+                    st.success("✅ Backend Connected")
+                else:
+                    st.error("❌ Backend Unavailable")
+                    st.info("Using Demo Mode")
+        
+        # Display current status
+        status_placeholder = st.empty()
+        try:
+            if is_backend_available():
+                status_placeholder.success("🟢 Backend Online")
+            else:
+                status_placeholder.warning("🟡 Demo Mode Active")
+        except:
+            status_placeholder.error("🔴 Connection Error")
+        
+        st.markdown("---")
         st.markdown("### Accessibility Features")
         st.markdown("- OpenDyslexic Font")
         st.markdown("- High Contrast Theme")
@@ -634,10 +656,41 @@ def run_dyslexia_analysis(text, image_file, audio_file):
                 st.rerun()
             
             else:
-                st.error(f"❌ Analysis failed: {response.text}")
+                st.error(f"❌ Analysis failed with status {response.status_code}: {response.text}")
+                st.info("🔄 Falling back to demo mode...")
+                # Fallback to demo mode
+                result = demo_analysis()
+                st.session_state.screening_result = result
+                st.success("✅ Analysis completed successfully! (Demo Mode - Backend Error)")
+                st.rerun()
+        
+        except requests.exceptions.ConnectionError as e:
+            st.error(f"❌ Cannot connect to backend server at {API_BASE_URL}")
+            st.error("Please ensure the backend is running on http://localhost:8000")
+            st.info("🔄 Falling back to demo mode...")
+            # Fallback to demo mode
+            result = demo_analysis()
+            st.session_state.screening_result = result
+            st.success("✅ Analysis completed successfully! (Demo Mode - Connection Error)")
+            st.rerun()
+        
+        except requests.exceptions.Timeout as e:
+            st.error(f"❌ Backend request timed out: {e}")
+            st.info("🔄 Falling back to demo mode...")
+            # Fallback to demo mode
+            result = demo_analysis()
+            st.session_state.screening_result = result
+            st.success("✅ Analysis completed successfully! (Demo Mode - Timeout)")
+            st.rerun()
         
         except Exception as e:
-            st.error(f"❌ Error during analysis: {e}")
+            st.error(f"❌ Unexpected error during analysis: {e}")
+            st.info("🔄 Falling back to demo mode...")
+            # Fallback to demo mode
+            result = demo_analysis()
+            st.session_state.screening_result = result
+            st.success("✅ Analysis completed successfully! (Demo Mode - Unexpected Error)")
+            st.rerun()
 
 def display_screening_results(result):
     """Display comprehensive screening results"""
