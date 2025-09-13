@@ -417,7 +417,38 @@ CREATE TABLE sessions (
 
 ## 🌐 Deployment Options
 
-### 🚂 Railway.app Deployment (Recommended)
+### 🌟 Streamlit Cloud Deployment (Frontend-Only)
+
+**Quick Deploy to Streamlit Cloud:**
+
+1. **Push to GitHub**: Ensure your repository is on GitHub
+2. **Visit Streamlit Cloud**: Go to [share.streamlit.io](https://share.streamlit.io)
+3. **Connect Repository**: Link your GitHub repository
+4. **Set Main File**: Use `streamlit_app.py` as the main file path
+5. **Configure Secrets** (optional): Add API endpoints in secrets
+
+**Required Files for Streamlit Cloud:**
+```
+streamlit_app.py              # Main app entry point
+requirements-streamlit.txt    # Streamlit-specific dependencies
+.streamlit/config.toml       # Streamlit configuration
+packages.txt                 # System dependencies
+```
+
+**Secrets Configuration** (in Streamlit Cloud settings):
+```toml
+[general]
+API_BASE_URL = "https://your-backend-api.herokuapp.com"
+DEMO_MODE = "true"
+```
+
+**Demo Mode Features:**
+- Fully functional frontend without backend dependency
+- Simulated AI analysis results for demonstration
+- All UI features and accessibility options working
+- Perfect for showcasing the platform capabilities
+
+### 🚂 Railway.app Deployment (Full Stack)
 ```yaml
 # railway.toml
 [build]
@@ -431,18 +462,23 @@ CREATE TABLE sessions (
   restartPolicyType = "ON_FAILURE"
 ```
 
-### 🌟 Streamlit Cloud Frontend
+### 🌟 Streamlit Cloud Configuration
 ```toml
 # .streamlit/config.toml
-[theme]
-base = "dark"
-primaryColor = "#4CAF50"
-backgroundColor = "#1e1e1e"
-secondaryBackgroundColor = "#2d2d2d"
+[global]
+developmentMode = false
 
 [server]
 headless = true
 enableCORS = false
+enableXsrfProtection = false
+maxUploadSize = 50
+
+[theme]
+primaryColor = "#4CAF50"
+backgroundColor = "#1e1e1e"
+secondaryBackgroundColor = "#2e2e2e"
+textColor = "#ffffff"
 ```
 
 ### 🐳 Docker Deployment
