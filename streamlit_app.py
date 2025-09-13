@@ -10,7 +10,7 @@ import os
 
 # Configuration for deployment
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-DEPLOYMENT_MODE = os.getenv("STREAMLIT_CLOUD", "false").lower() == "true"
+DEPLOYMENT_MODE = os.getenv("STREAMLIT_CLOUD", "false").lower() == "true" or os.getenv("SPACE_ID") is not None
 
 def is_backend_available():
     """Check if backend is currently available"""
@@ -279,15 +279,14 @@ def main():
     st.markdown("---")
     st.markdown("### *Accessible learning support through advanced AI analysis*")
     
-    # Check backend connection
-    try:
-        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-        if response.status_code == 200:
-            st.success("Backend connected successfully")
-        else:
-            st.error("Backend connection failed")
-    except requests.exceptions.RequestException:
-        st.error("Cannot connect to backend server. Please ensure the backend is running on http://localhost:8000")
+    # Check backend connection using proper detection
+    if is_backend_available():
+        st.success("✅ Backend connected successfully - Full AI analysis available")
+    elif DEPLOYMENT_MODE:
+        st.info("🎭 Running in demo mode for Streamlit Cloud deployment")
+    else:
+        st.warning("⚠️ Backend not available - Please start the backend server")
+        st.info("💡 To start the backend, run: `python backend/main_simple.py`")
     
     # Sidebar navigation
     with st.sidebar:
@@ -571,6 +570,40 @@ def run_dyslexia_analysis(text, image_file, audio_file):
     """Execute dyslexia screening analysis"""
     with st.spinner("🔍 Analyzing inputs... This may take a moment."):
         try:
+            # Check backend availability first
+            if not is_backend_available():
+                if DEPLOYMENT_MODE:
+                    # Demo mode for deployment
+                    st.info("🎭 Running in demo mode - Using sample AI analysis")
+                    time.sleep(2)  # Simulate processing
+                    result = demo_analysis()
+                    st.session_state.screening_result = result
+                    
+                    # Add to chat history
+                    user_msg = f"Submitted for analysis (Demo): "
+                    if text:
+                        user_msg += "text sample, "
+                    if image_file:
+                        user_msg += "handwriting image, "
+                    if audio_file:
+                        user_msg += "audio recording, "
+                    user_msg = user_msg.rstrip(", ")
+                    
+                    st.session_state.chat_history.append({"role": "user", "content": user_msg})
+                    st.session_state.chat_history.append({"role": "assistant", "content": "Demo analysis completed successfully."})
+                    
+                    st.success("✅ Analysis completed successfully! (Demo Mode)")
+                    st.rerun()
+                    return
+                else:
+                    # Local development - require backend
+                    st.error("❌ Backend server is not available. Please ensure the backend is running on http://localhost:8000")
+                    st.info("💡 To start the backend, run: `python backend/main_simple.py`")
+                    return
+            
+            # Backend is available - proceed with real API call
+            st.success("🔗 Connected to backend - Using AI analysis!")
+            
             # Prepare multipart form data
             files = {}
             data = {}

@@ -1,0 +1,25 @@
+# HuggingFace Spaces Requirements
+# Streamlined dependencies for deployment
+
+# Core Streamlit
+streamlit>=1.28.0
+
+# HTTP requests for API communication
+requests>=2.31.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Data processing
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Date/time utilities
+python-dateutil>=2.8.0
+
+# Additional utilities
+matplotlib>=3.7.0
+plotly>=5.15.0
