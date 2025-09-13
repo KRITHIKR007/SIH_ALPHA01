@@ -1,5 +1,5 @@
 # Streamlit Cloud Deployment Requirements
-# Simplified dependencies for frontend-only deployment
+# Full-featured MINDPIECE app with AI capabilities
 
 # Core Streamlit
 streamlit>=1.28.0
@@ -14,23 +14,21 @@ Pillow>=10.0.0
 numpy>=1.24.0
 pandas>=2.0.0
 
-# Audio processing (for TTS features)
-pydub>=0.25.1
-
 # Configuration
 python-dotenv>=1.0.0
-
-# Basic ML for client-side processing
-scikit-learn>=1.3.0
-
-# JSON handling
-jsonschema>=4.19.0
 
 # Date/time utilities
 python-dateutil>=2.8.0
 
-# Audio file handling
-soundfile>=0.12.1
+# JSON handling
+jsonschema>=4.19.0
 
-# Text processing
+# Audio processing (for file handling)
+pydub>=0.25.1
+
+# Text processing and similarity
 textdistance>=4.6.0
+python-Levenshtein>=0.20.0
+
+# OCR capabilities (lightweight for frontend processing)
+opencv-python-headless>=4.8.0
