@@ -53,16 +53,18 @@ DEMO_MODE = "false"
 # OPENAI_API_KEY = "your_key_here"
 ```
 
-## 🎯 Demo Mode Features
+## 🎯 Full-Featured App Features
 
-The app is configured to run in **Demo Mode** by default, which means:
+The app now includes **all MINDPIECE capabilities** with intelligent fallback:
 
-✅ **Fully Functional UI**: All interface elements work perfectly
-✅ **Simulated Analysis**: Realistic AI analysis results for demonstration
-✅ **No Backend Required**: Runs entirely on Streamlit Cloud
-✅ **All Accessibility Features**: OpenDyslexic font, high contrast theme
-✅ **File Upload Support**: Can handle text, image, and audio uploads
-✅ **Real-time Results**: Simulated processing with realistic timing
+✅ **Complete UI**: Full dyslexia screening interface with all analysis modules
+✅ **OpenDyslexic Font**: Accessibility-first design throughout
+✅ **Multi-Modal Analysis**: Text, handwriting, and speech analysis interfaces
+✅ **Admin Panel**: Complete administrative tools and session management
+✅ **TTS Interface**: Text-to-speech generation with speed controls
+✅ **Real API Integration**: Connects to backend when available
+✅ **Demo Mode Fallback**: Works standalone when backend is unavailable
+✅ **Professional Branding**: Full MINDPIECE visual identity
 
 ## 🔧 Troubleshooting
 

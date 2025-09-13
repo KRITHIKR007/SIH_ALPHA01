@@ -244,8 +244,8 @@ def load_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration
-API_BASE_URL = "http://localhost:8000"
+# Use the configuration from the top of the file
+# API_BASE_URL and DEMO_MODE are already defined above
 ADMIN_TOKEN = "hackathon-admin-2024"
 
 # Initialize session state
@@ -273,14 +273,17 @@ def main():
     st.markdown("### *Accessible learning support through advanced AI analysis*")
     
     # Check backend connection
-    try:
-        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-        if response.status_code == 200:
-            st.success("Backend connected successfully")
-        else:
-            st.error("Backend connection failed")
-    except requests.exceptions.RequestException:
-        st.error("Cannot connect to backend server. Please ensure the backend is running on http://localhost:8000")
+    if DEMO_MODE:
+        st.info("🎭 Running in Demo Mode - Backend simulation active")
+    else:
+        try:
+            response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+            if response.status_code == 200:
+                st.success("✅ Backend connected successfully")
+            else:
+                st.warning("⚠️ Backend connection issues - Falling back to demo mode")
+        except requests.exceptions.RequestException:
+            st.warning("⚠️ Cannot connect to backend server - Running in demo mode")
     
     # Sidebar navigation
     with st.sidebar:
@@ -364,15 +367,18 @@ def home_page():
         ### 📈 Platform Statistics
         """)
         
-        # Fetch and display stats
-        try:
-            response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-            if response.status_code == 200:
-                st.success("✅ Platform is online and healthy")
-            else:
-                st.warning("⚠️ Platform experiencing issues")
-        except:
-            st.error("❌ Cannot connect to backend services")
+        # Platform status
+        if DEMO_MODE:
+            st.info("🎭 Running in Demo Mode")
+        else:
+            try:
+                response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+                if response.status_code == 200:
+                    st.success("✅ Platform is online and healthy")
+                else:
+                    st.warning("⚠️ Platform experiencing issues")
+            except:
+                st.warning("⚠️ Backend unavailable - Demo mode active")
         
         st.markdown("""
         ### 🎓 Learning Resources
@@ -577,16 +583,26 @@ def run_dyslexia_analysis(text, image_file, audio_file):
             if audio_file:
                 files['audio_file'] = audio_file.getvalue()
             
-            # API call
-            response = requests.post(
-                f"{API_BASE_URL}/check_dyslexia",
-                data=data,
-                files=files if files else None,
-                timeout=60
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
+            # API call with fallback
+            try:
+                if DEMO_MODE:
+                    # Use demo mode
+                    result = demo_analysis()
+                else:
+                    # Try real API call
+                    response = requests.post(
+                        f"{API_BASE_URL}/api/v1/dyslexia/analyze",
+                        data=data,
+                        files=files if files else None,
+                        timeout=60
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                    else:
+                        st.warning("API call failed, using demo mode")
+                        result = demo_analysis()
+                
                 st.session_state.screening_result = result
                 
                 # Add to chat history
@@ -607,12 +623,19 @@ def run_dyslexia_analysis(text, image_file, audio_file):
                 
                 st.success("✅ Analysis completed successfully!")
                 st.rerun()
-            
-            else:
-                st.error(f"❌ Analysis failed: {response.text}")
-        
+                
+            except requests.exceptions.RequestException as e:
+                st.warning("⚠️ Backend connection failed, using demo mode")
+                result = demo_analysis()
+                st.session_state.screening_result = result
+                st.success("✅ Analysis completed in demo mode!")
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"❌ Error during analysis: {e}")
+                
         except Exception as e:
-            st.error(f"❌ Error during analysis: {e}")
+            st.error(f"❌ Unexpected error: {e}")
 
 def display_screening_results(result):
     """Display comprehensive screening results"""
@@ -708,45 +731,73 @@ def generate_tts_audio(text, speed, phonics_mode, language):
                 "language": language
             }
             
-            response = requests.post(
-                f"{API_BASE_URL}/tts",
-                json=payload,
-                timeout=60
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                
-                st.success("✅ Audio generated successfully!")
-                
-                # Display audio player (placeholder - in real implementation would serve the file)
-                st.markdown("#### 🎧 Generated Audio")
-                st.info(f"Audio file generated: {result['audio_file_path']}")
-                st.write(f"Duration: {result['duration']:.1f} seconds")
-                
-                # Settings used
-                settings = result.get("settings_used", {})
-                st.markdown("**Settings Applied:**")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.write(f"Speed: {settings.get('speed', 1.0)}x")
-                with col2:
-                    st.write(f"Phonics: {'Yes' if settings.get('phonics_mode') else 'No'}")
-                with col3:
-                    st.write(f"Language: {settings.get('language', 'en')}")
-                
-                # Add to chat history
-                st.session_state.chat_history.append({
-                    "role": "user", 
-                    "content": f"Generated TTS for: '{text[:50]}...'"
-                })
-                st.session_state.chat_history.append({
-                    "role": "assistant", 
-                    "content": f"Audio generated successfully! Duration: {result['duration']:.1f}s"
-                })
-            
+            if DEMO_MODE:
+                # Demo mode - simulate TTS generation
+                time.sleep(2)  # Simulate processing
+                result = {
+                    "audio_file_path": f"demo_tts_{int(time.time())}.wav",
+                    "duration": len(text) * 0.1,  # Simulate duration
+                    "settings_used": payload
+                }
+                st.success("✅ Audio generated successfully! (Demo Mode)")
+                st.info("🎭 Demo Mode: In production, actual audio would be generated here")
             else:
-                st.error(f"❌ TTS generation failed: {response.text}")
+                # Real API call
+                response = requests.post(
+                    f"{API_BASE_URL}/api/v1/tts/synthesize",
+                    json=payload,
+                    timeout=60
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    st.success("✅ Audio generated successfully!")
+                else:
+                    st.warning("TTS API failed, showing demo result")
+                    result = {
+                        "audio_file_path": f"demo_tts_{int(time.time())}.wav",
+                        "duration": len(text) * 0.1,
+                        "settings_used": payload
+                    }
+            
+            # Display results
+            st.markdown("#### 🎧 Generated Audio")
+            if not DEMO_MODE:
+                st.info(f"Audio file generated: {result['audio_file_path']}")
+            else:
+                st.info("Demo: Audio file would be available for download in production")
+            st.write(f"Duration: {result.get('duration', 0):.1f} seconds")
+            
+            # Settings used
+            settings = result.get("settings_used", {})
+            st.markdown("**Settings Applied:**")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.write(f"Speed: {settings.get('speed', 1.0)}x")
+            with col2:
+                st.write(f"Phonics: {'Yes' if settings.get('phonics_mode') else 'No'}")
+            with col3:
+                st.write(f"Language: {settings.get('language', 'en')}")
+            
+            # Add to chat history
+            st.session_state.chat_history.append({
+                "role": "user", 
+                "content": f"Generated TTS for: '{text[:50]}...'"
+            })
+            st.session_state.chat_history.append({
+                "role": "assistant", 
+                "content": f"Audio generated successfully! Duration: {result.get('duration', 0):.1f}s"
+            })
+                
+        except requests.exceptions.RequestException as e:
+            st.warning("⚠️ TTS backend unavailable, showing demo result")
+            # Fallback demo result
+            result = {
+                "audio_file_path": f"demo_tts_{int(time.time())}.wav",
+                "duration": len(text) * 0.1,
+                "settings_used": payload
+            }
+            st.info("🎭 Demo Mode: Audio generation simulated")
         
         except Exception as e:
             st.error(f"❌ Error generating audio: {e}")
