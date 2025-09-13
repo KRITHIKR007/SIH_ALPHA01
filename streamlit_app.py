@@ -8,58 +8,54 @@ import time
 from datetime import datetime
 import os
 
-# Configuration for Streamlit Cloud
+# Configuration for deployment
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
-# Demo analysis function for fallback
-def demo_analysis():
-    """Provide demo analysis results when backend is not available"""
-    import random
-    time.sleep(2)  # Simulate processing time
-    
-    return {
-        "session_id": f"demo_{int(time.time())}",
-        "analysis_result": {
-            "overall_score": round(random.uniform(0.3, 0.8), 2),
-            "dyslexia_indicators": [
-                "Letter reversals detected (b/d confusion)",
-                "Inconsistent spacing patterns",
-                "Reading fluency challenges"
-            ],
-            "recommendations": [
-                "Practice with phonics-based reading exercises",
-                "Use larger fonts and increased line spacing",
-                "Consider text-to-speech tools for assistance"
-            ],
-            "confidence": round(random.uniform(0.7, 0.95), 2)
-        }
-    }
-
-def call_api_with_fallback(url, method="GET", **kwargs):
-    """Make API call with fallback to demo mode"""
-    if DEMO_MODE:
-        return demo_analysis()
-    
+def is_backend_available():
+    """Check if backend is currently available"""
     try:
-        if method == "GET":
-            response = requests.get(url, timeout=10, **kwargs)
-        else:
-            response = requests.post(url, timeout=30, **kwargs)
-        
-        if response.status_code == 200:
-            return response.json()
-        else:
-            st.warning(f"API returned status {response.status_code}. Using demo mode.")
-            return demo_analysis()
-    except requests.exceptions.RequestException as e:
-        st.warning("Backend API unavailable. Running in demo mode.")
-        return demo_analysis()
+        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
+def demo_analysis():
+    """Demo analysis function for when backend is not available"""
+    return {
+        "handwriting_score": 75.0,
+        "reading_score": 82.0,
+        "speech_score": 78.0,
+        "overall_score": 78.3,
+        "risk_level": "MODERATE",
+        "confidence": 0.85,
+        "detailed_analysis": {
+            "handwriting": {
+                "letter_formation": "Some inconsistencies in letter shapes",
+                "spacing": "Generally good spacing between words",
+                "line_adherence": "Occasional drift from baseline"
+            },
+            "reading": {
+                "accuracy": "Good word recognition",
+                "fluency": "Moderate reading speed",
+                "comprehension": "Good understanding of text"
+            },
+            "speech": {
+                "pronunciation": "Clear pronunciation",
+                "fluency": "Good speech rhythm",
+                "vocabulary": "Age-appropriate vocabulary"
+            }
+        },
+        "recommendations": [
+            "Practice handwriting exercises focusing on letter formation",
+            "Regular reading sessions to improve fluency",
+            "Continue speech exercises for rhythm improvement"
+        ]
+    }
 
 # Set page configuration
 st.set_page_config(
-    page_title="MINDPIECE - AI Dyslexia Screening",
-    page_icon="🧠",
+    page_title="DyslexiaCare - AI Screening Platform",
+    page_icon="DC",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -244,8 +240,8 @@ def load_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Use the configuration from the top of the file
-# API_BASE_URL and DEMO_MODE are already defined above
+# Configuration
+API_BASE_URL = "http://localhost:8000"
 ADMIN_TOKEN = "hackathon-admin-2024"
 
 # Initialize session state
@@ -273,17 +269,14 @@ def main():
     st.markdown("### *Accessible learning support through advanced AI analysis*")
     
     # Check backend connection
-    if DEMO_MODE:
-        st.info("🎭 Running in Demo Mode - Backend simulation active")
-    else:
-        try:
-            response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-            if response.status_code == 200:
-                st.success("✅ Backend connected successfully")
-            else:
-                st.warning("⚠️ Backend connection issues - Falling back to demo mode")
-        except requests.exceptions.RequestException:
-            st.warning("⚠️ Cannot connect to backend server - Running in demo mode")
+    try:
+        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+        if response.status_code == 200:
+            st.success("Backend connected successfully")
+        else:
+            st.error("Backend connection failed")
+    except requests.exceptions.RequestException:
+        st.error("Cannot connect to backend server. Please ensure the backend is running on http://localhost:8000")
     
     # Sidebar navigation
     with st.sidebar:
@@ -367,18 +360,15 @@ def home_page():
         ### 📈 Platform Statistics
         """)
         
-        # Platform status
-        if DEMO_MODE:
-            st.info("🎭 Running in Demo Mode")
-        else:
-            try:
-                response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-                if response.status_code == 200:
-                    st.success("✅ Platform is online and healthy")
-                else:
-                    st.warning("⚠️ Platform experiencing issues")
-            except:
-                st.warning("⚠️ Backend unavailable - Demo mode active")
+        # Fetch and display stats
+        try:
+            response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+            if response.status_code == 200:
+                st.success("✅ Platform is online and healthy")
+            else:
+                st.warning("⚠️ Platform experiencing issues")
+        except:
+            st.error("❌ Cannot connect to backend services")
         
         st.markdown("""
         ### 🎓 Learning Resources
@@ -570,6 +560,35 @@ def run_dyslexia_analysis(text, image_file, audio_file):
     """Execute dyslexia screening analysis"""
     with st.spinner("🔍 Analyzing inputs... This may take a moment."):
         try:
+            backend_available = is_backend_available()
+            
+            if not backend_available:
+                # Use demo mode
+                st.info("🎭 Backend not available - Using demo mode")
+                time.sleep(2)  # Simulate processing time
+                result = demo_analysis()
+                st.session_state.screening_result = result
+                
+                # Add to chat history
+                user_msg = f"Submitted for analysis (Demo Mode): "
+                if text:
+                    user_msg += "text sample, "
+                if image_file:
+                    user_msg += "handwriting image, "
+                if audio_file:
+                    user_msg += "audio recording, "
+                user_msg = user_msg.rstrip(", ")
+                
+                st.session_state.chat_history.append({"role": "user", "content": user_msg})
+                st.session_state.chat_history.append({"role": "assistant", "content": "Demo analysis completed successfully."})
+                
+                st.success("✅ Analysis completed successfully! (Demo Mode)")
+                st.rerun()
+                return
+            
+            # Real backend API call
+            st.info("🔗 Connecting to backend...")
+            
             # Prepare multipart form data
             files = {}
             data = {}
@@ -583,26 +602,16 @@ def run_dyslexia_analysis(text, image_file, audio_file):
             if audio_file:
                 files['audio_file'] = audio_file.getvalue()
             
-            # API call with fallback
-            try:
-                if DEMO_MODE:
-                    # Use demo mode
-                    result = demo_analysis()
-                else:
-                    # Try real API call
-                    response = requests.post(
-                        f"{API_BASE_URL}/api/v1/dyslexia/analyze",
-                        data=data,
-                        files=files if files else None,
-                        timeout=60
-                    )
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                    else:
-                        st.warning("API call failed, using demo mode")
-                        result = demo_analysis()
-                
+            # API call
+            response = requests.post(
+                f"{API_BASE_URL}/check_dyslexia",
+                data=data,
+                files=files if files else None,
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
                 st.session_state.screening_result = result
                 
                 # Add to chat history
@@ -623,19 +632,12 @@ def run_dyslexia_analysis(text, image_file, audio_file):
                 
                 st.success("✅ Analysis completed successfully!")
                 st.rerun()
-                
-            except requests.exceptions.RequestException as e:
-                st.warning("⚠️ Backend connection failed, using demo mode")
-                result = demo_analysis()
-                st.session_state.screening_result = result
-                st.success("✅ Analysis completed in demo mode!")
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"❌ Error during analysis: {e}")
-                
+            
+            else:
+                st.error(f"❌ Analysis failed: {response.text}")
+        
         except Exception as e:
-            st.error(f"❌ Unexpected error: {e}")
+            st.error(f"❌ Error during analysis: {e}")
 
 def display_screening_results(result):
     """Display comprehensive screening results"""
@@ -724,6 +726,21 @@ def generate_tts_audio(text, speed, phonics_mode, language):
     """Generate text-to-speech audio"""
     with st.spinner("🎵 Generating audio... Please wait."):
         try:
+            backend_available = is_backend_available()
+            
+            if not backend_available:
+                # Demo mode
+                st.info("🎭 Backend not available - Demo TTS mode")
+                time.sleep(2)  # Simulate processing
+                st.success("✅ Audio generated successfully! (Demo Mode)")
+                st.markdown("#### 🎧 Generated Audio")
+                st.info("Demo: Audio file would be available for download in production")
+                st.write(f"Duration: {len(text) * 0.1:.1f} seconds (estimated)")
+                return
+            
+            # Real backend API call
+            st.info("🔗 Connecting to TTS service...")
+            
             payload = {
                 "text": text,
                 "speed": speed,
@@ -731,73 +748,45 @@ def generate_tts_audio(text, speed, phonics_mode, language):
                 "language": language
             }
             
-            if DEMO_MODE:
-                # Demo mode - simulate TTS generation
-                time.sleep(2)  # Simulate processing
-                result = {
-                    "audio_file_path": f"demo_tts_{int(time.time())}.wav",
-                    "duration": len(text) * 0.1,  # Simulate duration
-                    "settings_used": payload
-                }
-                st.success("✅ Audio generated successfully! (Demo Mode)")
-                st.info("🎭 Demo Mode: In production, actual audio would be generated here")
-            else:
-                # Real API call
-                response = requests.post(
-                    f"{API_BASE_URL}/api/v1/tts/synthesize",
-                    json=payload,
-                    timeout=60
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    st.success("✅ Audio generated successfully!")
-                else:
-                    st.warning("TTS API failed, showing demo result")
-                    result = {
-                        "audio_file_path": f"demo_tts_{int(time.time())}.wav",
-                        "duration": len(text) * 0.1,
-                        "settings_used": payload
-                    }
+            response = requests.post(
+                f"{API_BASE_URL}/tts",
+                json=payload,
+                timeout=60
+            )
             
-            # Display results
-            st.markdown("#### 🎧 Generated Audio")
-            if not DEMO_MODE:
+            if response.status_code == 200:
+                result = response.json()
+                
+                st.success("✅ Audio generated successfully!")
+                
+                # Display audio player (placeholder - in real implementation would serve the file)
+                st.markdown("#### 🎧 Generated Audio")
                 st.info(f"Audio file generated: {result['audio_file_path']}")
-            else:
-                st.info("Demo: Audio file would be available for download in production")
-            st.write(f"Duration: {result.get('duration', 0):.1f} seconds")
-            
-            # Settings used
-            settings = result.get("settings_used", {})
-            st.markdown("**Settings Applied:**")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.write(f"Speed: {settings.get('speed', 1.0)}x")
-            with col2:
-                st.write(f"Phonics: {'Yes' if settings.get('phonics_mode') else 'No'}")
-            with col3:
-                st.write(f"Language: {settings.get('language', 'en')}")
-            
-            # Add to chat history
-            st.session_state.chat_history.append({
-                "role": "user", 
-                "content": f"Generated TTS for: '{text[:50]}...'"
-            })
-            st.session_state.chat_history.append({
-                "role": "assistant", 
-                "content": f"Audio generated successfully! Duration: {result.get('duration', 0):.1f}s"
-            })
+                st.write(f"Duration: {result['duration']:.1f} seconds")
                 
-        except requests.exceptions.RequestException as e:
-            st.warning("⚠️ TTS backend unavailable, showing demo result")
-            # Fallback demo result
-            result = {
-                "audio_file_path": f"demo_tts_{int(time.time())}.wav",
-                "duration": len(text) * 0.1,
-                "settings_used": payload
-            }
-            st.info("🎭 Demo Mode: Audio generation simulated")
+                # Settings used
+                settings = result.get("settings_used", {})
+                st.markdown("**Settings Applied:**")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write(f"Speed: {settings.get('speed', 1.0)}x")
+                with col2:
+                    st.write(f"Phonics: {'Yes' if settings.get('phonics_mode') else 'No'}")
+                with col3:
+                    st.write(f"Language: {settings.get('language', 'en')}")
+                
+                # Add to chat history
+                st.session_state.chat_history.append({
+                    "role": "user", 
+                    "content": f"Generated TTS for: '{text[:50]}...'"
+                })
+                st.session_state.chat_history.append({
+                    "role": "assistant", 
+                    "content": f"Audio generated successfully! Duration: {result['duration']:.1f}s"
+                })
+            
+            else:
+                st.error(f"❌ TTS generation failed: {response.text}")
         
         except Exception as e:
             st.error(f"❌ Error generating audio: {e}")
